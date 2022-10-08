@@ -45,5 +45,6 @@ public:
 	FILE *h264_fp;
     BUFTYPE *usr_buf;
 	FILE *pipe_fd;
+    int count = 0;
 };
 #endif

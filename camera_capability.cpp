@@ -85,7 +85,7 @@ int cam_init()
         struct v4l2_frmivalenum frmival;
         frmsize.pixel_format = v4fmt.pixelformat;
         frmsize.index = 0;
-        printf(" support resolutions: ");
+        printf(" support resolutions: \n");
         while (ioctl(cam_fd, VIDIOC_ENUM_FRAMESIZES, &frmsize) >= 0){
             if(frmsize.type == V4L2_FRMSIZE_TYPE_DISCRETE){
             printf("  %dx%d\n", frmsize.discrete.width, frmsize.discrete.height);

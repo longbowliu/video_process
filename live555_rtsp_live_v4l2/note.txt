@@ -1,0 +1,1 @@
+g++ -o x264_encoder x264_encoder.cpp -lx264 -L./lib -lpthread -lm -ldl

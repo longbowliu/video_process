@@ -20,10 +20,15 @@
 #include "H264FramedLiveSource.hh"
 #include <BasicUsageEnvironment.hh>
 
-#define WIDTH 			1920
-#define HEIGHT 			1080
+
+#define u8 unsigned char
+#define WIDTH 			640
+#define HEIGHT 			480
+#define IMAGE_SIZE (WIDTH * HEIGHT * 2)
 #define widthStep 		960
-#define FILE_VIDEO      "/dev/video2"
+#define FILE_VIDEO      "/dev/video0"
+#define errno (*__errno_location ())
+u8 buf_temp[IMAGE_SIZE];
 
 extern class Device Camera; 
 
@@ -133,8 +138,9 @@ void Device::init_camera(void)
 	tv_fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;   
 	tv_fmt.fmt.pix.width = WIDTH;
 	tv_fmt.fmt.pix.height = HEIGHT;
-	tv_fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;	
-	// tv_fmt.fmt.pix.field = V4L2_FIELD_INTERLACED;   	
+	tv_fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_MJPEG;	
+	// tv_fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;	
+	tv_fmt.fmt.pix.field = V4L2_FIELD_INTERLACED;   	
 	if (ioctl(fd, VIDIOC_S_FMT, &tv_fmt)< 0) 
 	{
 		fprintf(stderr,"VIDIOC_S_FMT set err\n");
@@ -191,8 +197,19 @@ void Device::read_one_frame(void)
 		exit(EXIT_FAILURE);
 	}
 	assert(buf.index < n_buffer);
-    
-	//encode_frame(usr_buf[buf.index].start, usr_buf[buf.index].length);
+
+
+
+	char filename[32];
+	sprintf(filename, "/home/demo/%05d.raw", count++);
+	int fd_temp = open(filename,O_WRONLY|O_CREAT,00700);//保存图像数据
+	if (fd_temp >= 0)
+	{
+		write(fd_temp, usr_buf[buf.index].start, IMAGE_SIZE);
+		close(fd_temp);
+	}
+
+	// encode_frame(usr_buf[buf.index].start, usr_buf[buf.index].length);
     frame_len = compress_frame(&en, -1, usr_buf[buf.index].start, usr_buf[buf.index].length, h264_buf);
 
     if(-1 == ioctl(fd, VIDIOC_QBUF,&buf))
