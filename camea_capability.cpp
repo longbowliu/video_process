@@ -66,7 +66,7 @@ int cam_init()
     struct v4l2_fmtdesc v4fmt;
     v4fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     int i =0;
-    printf("support bellow format: \n ");
+    printf("support bellow format: ");
     while(1){
         v4fmt.index = i++;
         int ret = ioctl(cam_fd,VIDIOC_ENUM_FMT,&v4fmt);
@@ -74,21 +74,23 @@ int cam_init()
             perror("get format enum  error");
             break;
         }
-        printf("index =%d \n",v4fmt.index);
-        printf("flags  =%d \n",v4fmt.flags);
+    
+        printf("\n index =%d \n",v4fmt.index);
+        printf(" flags  =%d \n",v4fmt.flags);
         printf(" description=%s\n",v4fmt.description);
         unsigned char *p = (unsigned char *) &v4fmt.pixelformat;
         printf(" pixel format =%c%c%c%c\n",p[0],p[1],p[2],p[3]);
-        printf("reserved =%d\n",v4fmt.reserved[0]);
+        printf(" reserved =%d\n",v4fmt.reserved[0]);
         struct v4l2_frmsizeenum frmsize;
         struct v4l2_frmivalenum frmival;
         frmsize.pixel_format = v4fmt.pixelformat;
         frmsize.index = 0;
+        printf(" support resolutions: ");
         while (ioctl(cam_fd, VIDIOC_ENUM_FRAMESIZES, &frmsize) >= 0){
             if(frmsize.type == V4L2_FRMSIZE_TYPE_DISCRETE){
-            printf("line:%d %dx%d\n",__LINE__, frmsize.discrete.width, frmsize.discrete.height);
+            printf("  %dx%d\n", frmsize.discrete.width, frmsize.discrete.height);
             }else if(frmsize.type == V4L2_FRMSIZE_TYPE_STEPWISE){
-            printf("line:%d %dx%d\n",__LINE__, frmsize.discrete.width, frmsize.discrete.height);
+            printf("  %dx%d\n", frmsize.discrete.width, frmsize.discrete.height);
             }
             frmsize.index++;
         }
