@@ -21,12 +21,14 @@
 #include <BasicUsageEnvironment.hh>
 
 
+
+
 #define u8 unsigned char
 #define WIDTH 			640
 #define HEIGHT 			480
 #define IMAGE_SIZE (WIDTH * HEIGHT * 2)
 #define widthStep 		960
-#define FILE_VIDEO      "/dev/video0"
+#define FILE_VIDEO      "/dev/video2"
 #define errno (*__errno_location ())
 u8 buf_temp[IMAGE_SIZE];
 
@@ -138,9 +140,9 @@ void Device::init_camera(void)
 	tv_fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;   
 	tv_fmt.fmt.pix.width = WIDTH;
 	tv_fmt.fmt.pix.height = HEIGHT;
-	tv_fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_MJPEG;	
-	// tv_fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;	
-	tv_fmt.fmt.pix.field = V4L2_FIELD_INTERLACED;   	
+	// tv_fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_MJPEG;	
+	tv_fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;	
+	tv_fmt.fmt.pix.field = V4L2_FIELD_ANY;   	
 	if (ioctl(fd, VIDIOC_S_FMT, &tv_fmt)< 0) 
 	{
 		fprintf(stderr,"VIDIOC_S_FMT set err\n");
@@ -200,16 +202,17 @@ void Device::read_one_frame(void)
 
 
 
-	char filename[32];
-	sprintf(filename, "/home/demo/%05d.raw", count++);
-	int fd_temp = open(filename,O_WRONLY|O_CREAT,00700);//保存图像数据
-	if (fd_temp >= 0)
-	{
-		write(fd_temp, usr_buf[buf.index].start, IMAGE_SIZE);
-		close(fd_temp);
-	}
+	// char filename[32];
+	// sprintf(filename, "/home/demo/%05d.raw", count++);
+	// int fd_temp = open(filename,O_WRONLY|O_CREAT,00700);//保存图像数据
+	// if (fd_temp >= 0)
+	// {
+	// 	write(fd_temp, usr_buf[buf.index].start, IMAGE_SIZE);
+	// 	close(fd_temp);
+	// }
 
 	// encode_frame(usr_buf[buf.index].start, usr_buf[buf.index].length);
+	
     frame_len = compress_frame(&en, -1, usr_buf[buf.index].start, usr_buf[buf.index].length, h264_buf);
 
     if(-1 == ioctl(fd, VIDIOC_QBUF,&buf))
@@ -301,8 +304,6 @@ void Device::compress_begin(Encoder *en, int width, int height)
     en->param->i_keyint_max=en->param->i_fps_num*1.5;
     en->param->i_keyint_min=1;
     en->param->i_threads  = X264_SYNC_LOOKAHEAD_AUTO;
-	en->param->i_width = WIDTH; 
-	en->param->i_height = HEIGHT; 
 	en->param->i_frame_total = 0;
 	en->param->i_keyint_max = 10;
 	en->param->rc.i_lookahead = 0; 
@@ -313,7 +314,9 @@ void Device::compress_begin(Encoder *en, int width, int height)
 	en->param->rc.i_bitrate = 1024 * 10;
 	en->param->i_fps_num = 25;
 	en->param->i_fps_den = 1;
-
+	// x264_param_apply_preset(en->param,"medium");
+	en->param->i_width = WIDTH; 
+	en->param->i_height = HEIGHT; 
 
 
 #if 0
@@ -325,15 +328,17 @@ void Device::compress_begin(Encoder *en, int width, int height)
 	en->param->i_fps_den = 1;
 #endif
 
-	en->param->i_csp = X264_CSP_I422;
-	x264_param_apply_profile(en->param, x264_profile_names[4]); 
+	
+	// x264_param_apply_profile(en->param, x264_profile_names[4]); 
 
 	if ((en->handle = x264_encoder_open(en->param)) == 0) {
 		return;
 	}
     
-	x264_picture_alloc(en->picture, X264_CSP_I422, en->param->i_width,
+	x264_picture_alloc(en->picture, X264_CSP_I420, en->param->i_width,
 			en->param->i_height);
+	en->picture->img.i_plane = 3;
+	en->param->i_csp = X264_CSP_I420;
 }
 
 int Device::compress_frame(Encoder *en, int type, char *in, int len, char *out) 
@@ -402,7 +407,23 @@ void Device::getnextframe(void)
     {
          
 		read_one_frame();
+		count ++;
+		if(count <= 1000){
+			printf("%d\n", count);
+		}
 		fwrite(Camera.h264_buf, Camera.frame_len, 1, Camera.pipe_fd);
+		FILE *h264_fp; 
+		h264_fp=fopen("/home/demo/tt.x264","wa+");
+		if(h264_fp==NULL)
+		{
+			printf("文件创建失败!\n");
+			exit(1);
+		}
+		fwrite(Camera.h264_buf, Camera.frame_len, 1,h264_fp);
+		if(count == 1000){
+			fclose(h264_fp);
+			printf("here closed");
+		}
     }
 	else
 	{

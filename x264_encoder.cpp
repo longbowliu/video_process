@@ -17,10 +17,10 @@
 #include <sys/mman.h>
 #include <string.h>
 #include <stdint.h>
-#include "include/x264/x264.h"
+#include "live555_rtsp_live_v4l2/include/x264/x264.h"
  
 /*摄像头相关的全局变量声明区域*/
-#define UVC_VIDEO_DEVICE "/dev/video0"  /*UVC摄像头设备节点*/
+#define UVC_VIDEO_DEVICE "/dev/video2"  /*UVC摄像头设备节点*/
 int uvc_video_fd; /*存放摄像头设备节点的文件描述符*/
 unsigned char *video_memaddr_buffer[4]; /*存放的是摄像头映射出来的缓冲区首地址*/
 int Image_Width;  /*图像的宽度*/
