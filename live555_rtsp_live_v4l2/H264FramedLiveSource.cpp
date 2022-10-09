@@ -214,6 +214,12 @@ void Device::read_one_frame(void)
 	// encode_frame(usr_buf[buf.index].start, usr_buf[buf.index].length);
 	
     frame_len = compress_frame(&en, -1, usr_buf[buf.index].start, usr_buf[buf.index].length, h264_buf);
+	if(frame_len > 0)
+	{
+		// printf("h264_length=%d\n",frame_len);
+		//写入视频文件
+		fwrite(h264_buf, frame_len,1,h264_fp);
+	}
 
     if(-1 == ioctl(fd, VIDIOC_QBUF,&buf))
 	{
@@ -296,24 +302,24 @@ void Device::compress_begin(Encoder *en, int width, int height)
 	x264_param_default(en->param); //set default param
 
 
-    en->param->i_frame_reference=3;
-    en->param->rc.i_rc_method=X264_RC_ABR;
-    en->param->b_cabac =0;
-    en->param->b_interlaced=0;
-    en->param->i_level_idc=30;
-    en->param->i_keyint_max=en->param->i_fps_num*1.5;
-    en->param->i_keyint_min=1;
+    // en->param->i_frame_reference=3;
+    // en->param->rc.i_rc_method=X264_RC_ABR;
+    // en->param->b_cabac =0;
+    // en->param->b_interlaced=0;
+    // en->param->i_level_idc=30;
+    // en->param->i_keyint_max=en->param->i_fps_num*1.5;
+    // en->param->i_keyint_min=1;
     en->param->i_threads  = X264_SYNC_LOOKAHEAD_AUTO;
-	en->param->i_frame_total = 0;
-	en->param->i_keyint_max = 10;
-	en->param->rc.i_lookahead = 0; 
-	en->param->i_bframe = 5; 
-	en->param->b_open_gop = 0;
-	en->param->i_bframe_pyramid = 0;
-	en->param->i_bframe_adaptive = X264_B_ADAPT_TRELLIS;
-	en->param->rc.i_bitrate = 1024 * 10;
-	en->param->i_fps_num = 25;
-	en->param->i_fps_den = 1;
+	// en->param->i_frame_total = 0;
+	// en->param->i_keyint_max = 10;
+	// en->param->rc.i_lookahead = 0; 
+	// en->param->i_bframe = 5; 
+	// en->param->b_open_gop = 0;
+	// en->param->i_bframe_pyramid = 0;
+	// en->param->i_bframe_adaptive = X264_B_ADAPT_TRELLIS;
+	// en->param->rc.i_bitrate = 1024 * 10;
+	// en->param->i_fps_num = 25;
+	// en->param->i_fps_den = 1;
 	// x264_param_apply_preset(en->param,"medium");
 	en->param->i_width = WIDTH; 
 	en->param->i_height = HEIGHT; 
@@ -343,31 +349,39 @@ void Device::compress_begin(Encoder *en, int width, int height)
 
 int Device::compress_frame(Encoder *en, int type, char *in, int len, char *out) 
 {
-	x264_picture_t pic_out;
-	int index_y, index_u, index_v;
-	int num;
-	int nNal = -1;
+		x264_picture_t pic_out;
+	int nNal = 0;
 	int result = 0;
-	int i = 0;
+	int i = 0 , j = 0 ;
 	char *p_out = out;
-	char *y = (char*)en->picture->img.plane[0];   
-	char *u = (char*)en->picture->img.plane[1];   
-	char *v = (char*)en->picture->img.plane[2];   
-
-	index_y = 0;
-    index_u = 0;
-    index_v = 0;
-
-    num = WIDTH * HEIGHT * 2 - 4  ;
-
-    for(i=0; i<num; i=i+4)
-    {
-            *(y + (index_y++)) = *(in + i);
-            *(u + (index_u++)) = *(in + i + 1);
-            *(y + (index_y++)) = *(in + i + 2);
-            *(v + (index_v++)) = *(in + i + 3);
-     }
-
+	en->nal=NULL;
+	char *p422;
+ 
+	char *y = (char*)en->picture->img.plane[0];
+	char *u = (char*)en->picture->img.plane[1];
+	char *v = (char*)en->picture->img.plane[2];
+ 
+ 
+//
+	int widthStep422 = en->param->i_width * 2;
+	for(i = 0; i < en->param->i_height; i += 2)
+	{
+		p422 = in + i * widthStep422;
+		for(j = 0; j < widthStep422; j+=4)
+		{
+			*(y++) = p422[j];
+			*(u++) = p422[j+1];
+			*(y++) = p422[j+2];
+		}
+		p422 += widthStep422;
+		for(j = 0; j < widthStep422; j+=4)
+		{
+			*(y++) = p422[j];
+			*(v++) = p422[j+3];
+			*(y++) = p422[j+2];
+		}
+	}
+ 
 	switch (type) {
 	case 0:
 		en->picture->i_type = X264_TYPE_P;
@@ -382,21 +396,23 @@ int Device::compress_frame(Encoder *en, int type, char *in, int len, char *out)
 		en->picture->i_type = X264_TYPE_AUTO;
 		break;
 	}
-
-	en->picture->i_pts ++;
-
+ 
+	/*开始264编码*/
 	if (x264_encoder_encode(en->handle, &(en->nal), &nNal, en->picture,
 			&pic_out) < 0) {
 		return -1;
 	}
-
+	en->picture->i_pts++;
+ 
+ 
 	for (i = 0; i < nNal; i++) {
-		memcpy(p_out, en->nal[i].p_payload, en->nal[i].i_payload);   
-		p_out += en->nal[i].i_payload;								 
+		memcpy(p_out, en->nal[i].p_payload, en->nal[i].i_payload);
+		p_out += en->nal[i].i_payload;
 		result += en->nal[i].i_payload;
 	}
-
+ 
 	return result;
+	//return nNal;
 }
 
 void Device::getnextframe(void)
@@ -407,23 +423,12 @@ void Device::getnextframe(void)
     {
          
 		read_one_frame();
-		count ++;
-		if(count <= 1000){
-			printf("%d\n", count);
-		}
-		fwrite(Camera.h264_buf, Camera.frame_len, 1, Camera.pipe_fd);
-		FILE *h264_fp; 
-		h264_fp=fopen("/home/demo/tt.x264","wa+");
-		if(h264_fp==NULL)
-		{
-			printf("文件创建失败!\n");
-			exit(1);
-		}
-		fwrite(Camera.h264_buf, Camera.frame_len, 1,h264_fp);
-		if(count == 1000){
-			fclose(h264_fp);
-			printf("here closed");
-		}
+		// count ++;
+		// if(count <= 1000){
+		// 	printf("%d\n", count);
+		// }
+		// fwrite(Camera.h264_buf, Camera.frame_len, 1, Camera.pipe_fd);
+	
     }
 	else
 	{
@@ -455,6 +460,12 @@ void Device::close_encoder()
 
 void Device::Init()
 {
+	h264_fp=fopen("/home/demo/INNO/repos/video_process/live555_rtsp_live_v4l2/test.h264","wa+");
+	if(h264_fp==NULL)
+	{
+		printf("文件创建失败!\n");
+		exit(1);
+	}
 	open_camera();
 	init_camera();
     init_mmap();
