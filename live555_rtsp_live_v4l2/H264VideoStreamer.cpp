@@ -13,7 +13,7 @@ You should have received a copy of the GNU Lesser General Public License
 along with this library; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 **********/
-// Copyright (c) 1996-2017, Live Networks, Inc.  All rights reserved
+// Copyright (c) 1996-2022, Live Networks, Inc.  All rights reserved
 // A test program that reads a H.264 Elementary Stream video file
 // and streams it using RTP
 // main program
@@ -25,7 +25,9 @@ along with this library; if not, write to the Free Software Foundation, Inc.,
 // RTSP client (such as "openRTSP")
 
 #include <liveMedia.hh>
+
 #include <BasicUsageEnvironment.hh>
+// #include "announceURL.hh"
 #include <GroupsockHelper.hh>
 #include <H264FramedLiveSource.hh>
 #include <sys/types.h>  
@@ -33,14 +35,11 @@ along with this library; if not, write to the Free Software Foundation, Inc.,
 
 UsageEnvironment* env;
 char const* inputFileName = "/tmp/fifo";
-char *ptr;
 H264VideoStreamFramer* videoSource;
 RTPSink* videoSink;
 class Device Camera; 
 
 void play(); // forward
-
-EventTriggerId DeviceSource::eventTriggerId = 0;
 
 int main(int argc, char** argv) {
   // Begin by setting up our usage environment:
@@ -49,6 +48,7 @@ int main(int argc, char** argv) {
 
   // Create 'groupsocks' for RTP and RTCP:
   struct sockaddr_storage destinationAddress;
+  destinationAddress.ss_family = AF_INET;
   ((struct sockaddr_in&)destinationAddress).sin_addr.s_addr = chooseRandomIPv4SSMAddress(*env);
   // Note: This is a multicast address.  If you wish instead to stream
   // using unicast, then you should use the "testOnDemandRTSPServer"
@@ -61,11 +61,25 @@ int main(int argc, char** argv) {
   const Port rtpPort(rtpPortNum);
   const Port rtcpPort(rtcpPortNum);
 
+  FILE * h264_fp_buf=fopen("/home/demo/INNO/repos/video_process/live555_rtsp_live_v4l2/test_buf.h264","wa+");
+	if(h264_fp_buf==NULL)
+	{
+		printf("buf 文件创建失败!\n");
+		exit(1);
+	}
+
+    FILE * h264_fp_pipe=fopen("/home/demo/INNO/repos/video_process/live555_rtsp_live_v4l2/test_pipe.h264","wa+");
+	if(h264_fp_pipe==NULL)
+	{
+		printf("pipe 文件创建失败!\n");
+		exit(1);
+	}
+
   Camera.Init();
   mkfifo(inputFileName, 0777);
   if(0 == fork())
   {
-	Camera.pipe_fd = fopen(inputFileName, "w");
+	Camera.pipe_fd = fopen(inputFileName, "wa+");
 	if(NULL == Camera.pipe_fd)
 	{
 		printf("===============child process open pipe err =======\n ");
@@ -74,23 +88,22 @@ int main(int argc, char** argv) {
 	{
 		usleep(15000);
 		Camera.getnextframe();
+    fwrite(Camera.h264_buf, Camera.frame_len, 1, h264_fp_buf);
+    fwrite(Camera.pipe_fd, Camera.frame_len, 1, h264_fp_pipe);
 	}
 	
-  }
-
+  }  
   Groupsock rtpGroupsock(*env, destinationAddress, rtpPort, ttl);
   rtpGroupsock.multicastSendOnly(); // we're a SSM source
   Groupsock rtcpGroupsock(*env, destinationAddress, rtcpPort, ttl);
   rtcpGroupsock.multicastSendOnly(); // we're a SSM source
 
-  
-		
   // Create a 'H264 Video RTP' sink from the RTP 'groupsock':
-  OutPacketBuffer::maxSize = 600000;
+  OutPacketBuffer::maxSize = 100000;
   videoSink = H264VideoRTPSink::createNew(*env, &rtpGroupsock, 96);
 
   // Create (and start) a 'RTCP instance' for this RTP sink:
-  const unsigned estimatedSessionBandwidth = 10000; // in kbps; for RTCP b/w share
+  const unsigned estimatedSessionBandwidth = 500; // in kbps; for RTCP b/w share
   const unsigned maxCNAMElen = 100;
   unsigned char CNAME[maxCNAMElen+1];
   gethostname((char*)CNAME, maxCNAMElen);
@@ -113,10 +126,12 @@ int main(int argc, char** argv) {
 					   True /*SSM*/);
   sms->addSubsession(PassiveServerMediaSubsession::createNew(*videoSink, rtcp));
   rtspServer->addServerMediaSession(sms);
+  // announceURL(rtspServer, sms);
 
-  char* url = rtspServer->rtspURL(sms);
+    char* url = rtspServer->rtspURL(sms);
   *env << "Play this stream using the URL \"" << url << "\"\n";
-  delete[] url;
+  delete[] url;  
+
 
   // Start the streaming:
   *env << "Beginning streaming...\n";
@@ -151,7 +166,7 @@ void play() {
   FramedSource* videoES = fileSource;
 
   // Create a framer for the Video Elementary Stream:
-  videoSource = H264VideoStreamFramer::createNew(*env, videoES,false,false);
+  videoSource = H264VideoStreamFramer::createNew(*env, videoES);
 
   // Finally, start playing:
   *env << "Beginning to read from file...\n";

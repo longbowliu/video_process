@@ -17,7 +17,10 @@
 #include <sys/mman.h>
 #include <string.h>
 #include <stdint.h>
-#include "live555_rtsp_live_v4l2/include/x264/x264.h"
+#include "include/x264/x264.h"
+#include "H264FramedLiveSource.hh"
+ 
+ extern class Device Camera; 
  
 /*摄像头相关的全局变量声明区域*/
 #define UVC_VIDEO_DEVICE "/dev/video0"  /*UVC摄像头设备节点*/

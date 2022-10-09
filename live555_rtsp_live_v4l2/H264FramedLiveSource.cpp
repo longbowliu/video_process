@@ -28,7 +28,7 @@
 #define HEIGHT 			480
 #define IMAGE_SIZE (WIDTH * HEIGHT * 2)
 #define widthStep 		960
-#define FILE_VIDEO      "/dev/video2"
+#define FILE_VIDEO      "/dev/video0"
 #define errno (*__errno_location ())
 u8 buf_temp[IMAGE_SIZE];
 
@@ -218,7 +218,7 @@ void Device::read_one_frame(void)
 	{
 		// printf("h264_length=%d\n",frame_len);
 		//写入视频文件
-		fwrite(h264_buf, frame_len,1,h264_fp);
+		// fwrite(h264_buf, frame_len,1,h264_fp);
 	}
 
     if(-1 == ioctl(fd, VIDIOC_QBUF,&buf))
@@ -427,7 +427,7 @@ void Device::getnextframe(void)
 		// if(count <= 1000){
 		// 	printf("%d\n", count);
 		// }
-		// fwrite(Camera.h264_buf, Camera.frame_len, 1, Camera.pipe_fd);
+		fwrite(Camera.h264_buf, Camera.frame_len, 1, Camera.pipe_fd);
 	
     }
 	else
@@ -460,12 +460,12 @@ void Device::close_encoder()
 
 void Device::Init()
 {
-	h264_fp=fopen("/home/demo/INNO/repos/video_process/live555_rtsp_live_v4l2/test.h264","wa+");
-	if(h264_fp==NULL)
-	{
-		printf("文件创建失败!\n");
-		exit(1);
-	}
+	// h264_fp=fopen("/home/demo/INNO/repos/video_process/live555_rtsp_live_v4l2/test.h264","wa+");
+	// if(h264_fp==NULL)
+	// {
+	// 	printf("文件创建失败!\n");
+	// 	exit(1);
+	// }
 	open_camera();
 	init_camera();
     init_mmap();
