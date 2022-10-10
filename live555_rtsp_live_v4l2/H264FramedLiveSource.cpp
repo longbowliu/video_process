@@ -427,7 +427,9 @@ void Device::getnextframe(void)
 		// if(count <= 1000){
 		// 	printf("%d\n", count);
 		// }
-		fwrite(Camera.h264_buf, Camera.frame_len, 1, Camera.pipe_fd);
+		
+		fwrite(Camera.h264_buf, frame_len, 1, Camera.pipe_fd);
+		fwrite(h264_buf, frame_len,1,h264_fp);
 	
     }
 	else
@@ -460,12 +462,12 @@ void Device::close_encoder()
 
 void Device::Init()
 {
-	// h264_fp=fopen("/home/demo/INNO/repos/video_process/live555_rtsp_live_v4l2/test.h264","wa+");
-	// if(h264_fp==NULL)
-	// {
-	// 	printf("文件创建失败!\n");
-	// 	exit(1);
-	// }
+	h264_fp=fopen("/home/demo/INNO/repos/video_process/live555_rtsp_live_v4l2/test_pipe_content.h264","wa+");
+	if(h264_fp==NULL)
+	{
+		printf("文件创建失败!\n");
+		exit(1);
+	}
 	open_camera();
 	init_camera();
     init_mmap();

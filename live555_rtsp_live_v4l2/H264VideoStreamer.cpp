@@ -32,9 +32,13 @@ along with this library; if not, write to the Free Software Foundation, Inc.,
 #include <H264FramedLiveSource.hh>
 #include <sys/types.h>  
 #include <sys/stat.h> 
+#include <fstream>
+#include <fcntl.h>
 
 UsageEnvironment* env;
-char const* inputFileName = "/tmp/fifo";
+bool useStream = true;
+char const* inputFileName = "test.h264";
+
 H264VideoStreamFramer* videoSource;
 RTPSink* videoSink;
 class Device Camera; 
@@ -61,36 +65,73 @@ int main(int argc, char** argv) {
   const Port rtpPort(rtpPortNum);
   const Port rtcpPort(rtcpPortNum);
 
-  FILE * h264_fp_buf=fopen("/home/demo/INNO/repos/video_process/live555_rtsp_live_v4l2/test_buf.h264","wa+");
-	if(h264_fp_buf==NULL)
-	{
-		printf("buf 文件创建失败!\n");
-		exit(1);
-	}
+  if( useStream ){
+    inputFileName = "/tmp/fifo";
+    FILE * h264_fp_buf=fopen("/home/demo/INNO/repos/video_process/live555_rtsp_live_v4l2/test_buf.h264","wa+");
+    if(h264_fp_buf==NULL)
+    {
+      printf("buf 文件创建失败!\n");
+      exit(1);
+    }
 
-    FILE * h264_fp_pipe=fopen("/home/demo/INNO/repos/video_process/live555_rtsp_live_v4l2/test_pipe.h264","wa+");
-	if(h264_fp_pipe==NULL)
-	{
-		printf("pipe 文件创建失败!\n");
-		exit(1);
-	}
+    //   FILE * h264_fp_pipe=fopen("/home/demo/INNO/repos/video_process/live555_rtsp_live_v4l2/test_pipe.h264","wa+");
+    // if(h264_fp_pipe==NULL)
+    // {
+    // 	printf("pipe 文件创建失败!\n");
+    // 	exit(1);
+    // }
 
-  Camera.Init();
-  mkfifo(inputFileName, 0777);
-  if(0 == fork())
-  {
-	Camera.pipe_fd = fopen(inputFileName, "wa+");
-	if(NULL == Camera.pipe_fd)
-	{
-		printf("===============child process open pipe err =======\n ");
-	}
-	while(1)
-	{
-		usleep(15000);
-		Camera.getnextframe();
-    fwrite(Camera.h264_buf, Camera.frame_len, 1, h264_fp_buf);
-    fwrite(Camera.pipe_fd, Camera.frame_len, 1, h264_fp_pipe);
-	}
+    Camera.Init();
+    mkfifo(inputFileName, 0777);
+    if(0 == fork())
+    {
+    Camera.pipe_fd = fopen(inputFileName, "wa+");
+      // if(NULL == Camera.pipe_fd)
+      // {
+      //   printf("===============child process open pipe err =======\n ");
+      // }
+      bool isOpen = false;
+      int ret = 0;
+      int pipe_fd;
+      while(1)
+      {
+        usleep(15000);
+        Camera.getnextframe();
+
+        fwrite(Camera.h264_buf, Camera.frame_len, 1, h264_fp_buf);
+
+        // if(!isOpen){
+        //   pipe_fd = open(inputFileName, O_WRONLY);  
+        //   if(pipe_fd != -1)
+        //     {
+        //         printf("open fifo success\n");
+        //         printf(" pipe_fd = %d\n", pipe_fd);
+        //         isOpen = true;
+        //         //return pipe_fd;
+        //     }
+        //     else
+        //     {
+        //         printf("pipe file open error %s\n", strerror(errno));
+        //         return -1;
+        //         // pthread_exit(NULL);
+        //     }
+        //  }
+        //  ret = write(pipe_fd,Camera.h264_buf, Camera.frame_len);
+        //  printf("write len = %d", ret);
+        //   if(ret != Camera.frame_len)
+        //   {
+        //       printf("=======Write fifo Err======\n");
+        //       return -1;
+        //   }
+
+        // fwrite(Camera.pipe_fd, Camera.frame_len, 1, h264_fp_pipe);
+        // std::ifstream f1 (inputFileName, std::fstream::binary);
+        // std::ofstream f2 ("/home/demo/INNO/repos/video_process/live555_rtsp_live_v4l2/test_pipe.h264", std::fstream::trunc|std::fstream::binary);
+        // f2 << f1.rdbuf ();
+      }
+  }
+
+
 	
   }  
   Groupsock rtpGroupsock(*env, destinationAddress, rtpPort, ttl);
@@ -146,7 +187,9 @@ void afterPlaying(void* /*clientData*/) {
   *env << "...done reading from file\n";
   videoSink->stopPlaying();
   Medium::close(videoSource);
-  Camera.Destory();
+  if(useStream){
+    Camera.Destory();
+  }
   // Note that this also closes the input file that this source read from.
 
   // Start playing once again:
