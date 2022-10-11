@@ -29,8 +29,11 @@ along with this library; if not, write to the Free Software Foundation, Inc.,
 #include <BasicUsageEnvironment.hh>
 // #include "announceURL.hh"
 #include <GroupsockHelper.hh>
-#include <H264FramedLiveSource.hh>
+// #include <H264FramedLiveSource.hh>
 #include <fstream>
+#include <FramedSource.hh>
+#include <UsageEnvironment.hh>
+#include "encoder_define.hh"
 
 #include <stdio.h>
 #include <sys/socket.h>
@@ -52,14 +55,15 @@ along with this library; if not, write to the Free Software Foundation, Inc.,
 #include <string.h>
 #include <stdint.h>
 
+bool useStream = true;
+bool needRecord = false;
 UsageEnvironment* env;
-bool useStream = false;
 char const* inputFileName = "test_buf.h264";
 
 H264VideoStreamFramer* videoSource;
 RTPSink* videoSink;
 /*摄像头相关的全局变量声明区域*/
-#define UVC_VIDEO_DEVICE "/dev/video2"  /*UVC摄像头设备节点*/
+#define UVC_VIDEO_DEVICE "/dev/video0"  /*UVC摄像头设备节点*/
 int uvc_video_fd; /*存放摄像头设备节点的文件描述符*/
 unsigned char *video_memaddr_buffer[4]; /*存放的是摄像头映射出来的缓冲区首地址*/
 int Image_Width;  /*图像的宽度*/
@@ -345,7 +349,9 @@ void encode_frame(uint8_t *yuv_frame)
 		printf("h264_length=%d\n",h264_length);
 		//写入视频文件
 		fwrite(h264_buf, h264_length,1,h264_fp);
-    // fwrite(h264_buf, h264_length,1,h264_fp_buf);
+    if(needRecord){
+      fwrite(h264_buf, h264_length,1,h264_fp_buf);
+    }
     
 	}
 }
@@ -515,11 +521,13 @@ int main(int argc, char** argv) {
 
   if( useStream ){
     inputFileName = "/tmp/fifo";
-    h264_fp_buf=fopen("/home/demo/INNO/repos/video_process/live555_rtsp_live_v4l2/test_buf.h264","wa+");
-    if(h264_fp_buf==NULL)
-    {
-      printf("buf 文件创建失败!\n");
-      exit(1);
+    if(needRecord){
+      h264_fp_buf=fopen("/home/demo/INNO/repos/video_process/live555_rtsp_live_v4l2/test_buf.h264","wa+");
+      if(h264_fp_buf==NULL)
+      {
+        printf("buf 文件创建失败!\n");
+        exit(1);
+      }
     }
     //   FILE * h264_fp_pipe=fopen("/home/demo/INNO/repos/video_process/live555_rtsp_live_v4l2/test_pipe.h264","wa+");
     // if(h264_fp_pipe==NULL)
