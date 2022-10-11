@@ -18,9 +18,9 @@ CPLUSPLUS_COMPILER =    c++
 CPLUSPLUS_FLAGS =   $(COMPILE_OPTS) -Wall -DBSD=1 $(CPPFLAGS) $(CXXFLAGS)
 OBJ 		 =           o
 LINK 		 =  c++ -o
-LINK_OPTS    =  -ldl -lssl  -lcrypto -lm -lpthread -ldl -g 
+LINK_OPTS    = -lx264 -L./lib -lpthread   -ldl -lssl  -lcrypto -lm -lpthread -ldl -g 
 CONSOLE_LINK_OPTS = $(LINK_OPTS)
-LINK_OBJ	 = H264FramedLiveSource.o H264VideoStreamer.o
+LINK_OBJ	 =  H264VideoStreamer.o
 
 APP = H264VideoStreamer
 

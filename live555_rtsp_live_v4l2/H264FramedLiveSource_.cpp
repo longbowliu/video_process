@@ -428,8 +428,8 @@ void Device::getnextframe(void)
 		// 	printf("%d\n", count);
 		// }
 		
-		fwrite(Camera.h264_buf, frame_len, 1, Camera.pipe_fd);
-		fwrite(h264_buf, frame_len,1,h264_fp);
+		fwrite(Camera.h264_buf, Camera.frame_len, 1, Camera.pipe_fd);
+		// fwrite(h264_buf, frame_len,1,h264_fp);
 	
     }
 	else
