@@ -53,8 +53,8 @@ along with this library; if not, write to the Free Software Foundation, Inc.,
 #include <stdint.h>
 
 UsageEnvironment* env;
-bool useStream = true;
-char const* inputFileName = "test.h264";
+bool useStream = false;
+char const* inputFileName = "test_buf.h264";
 
 H264VideoStreamFramer* videoSource;
 RTPSink* videoSink;
@@ -66,6 +66,7 @@ int Image_Width;  /*图像的宽度*/
 int Image_Height; /*图像的高度*/
 /*X264编码器相关的全局变量声明区域*/
 unsigned char *h264_buf=NULL;
+FILE * h264_fp_buf;
 // typedef struct
 // {
 //   x264_param_t *param;
@@ -344,6 +345,8 @@ void encode_frame(uint8_t *yuv_frame)
 		printf("h264_length=%d\n",h264_length);
 		//写入视频文件
 		fwrite(h264_buf, h264_length,1,h264_fp);
+    // fwrite(h264_buf, h264_length,1,h264_fp_buf);
+    
 	}
 }
  
@@ -512,7 +515,7 @@ int main(int argc, char** argv) {
 
   if( useStream ){
     inputFileName = "/tmp/fifo";
-    FILE * h264_fp_buf=fopen("/home/demo/INNO/repos/video_process/live555_rtsp_live_v4l2/test_buf.h264","wa+");
+    h264_fp_buf=fopen("/home/demo/INNO/repos/video_process/live555_rtsp_live_v4l2/test_buf.h264","wa+");
     if(h264_fp_buf==NULL)
     {
       printf("buf 文件创建失败!\n");
@@ -541,23 +544,23 @@ int main(int argc, char** argv) {
   pthread_t thread;
 	
 	/*绑定将要捕获的信号*/
-	signal(SIGINT,exit_sighandler);
-	signal(SIGSEGV,exit_sighandler);
-	signal(SIGPIPE,SIG_IGN);
+	// signal(SIGINT,exit_sighandler);
+	// signal(SIGSEGV,exit_sighandler);
+	// signal(SIGPIPE,SIG_IGN);
 	
-	/*1. 初始化摄像头*/
-	if(UVCvideoInit()!=0)
-	{
-		printf("摄像头数据采集客户端:初始化摄像头失败!\n");
-		exit(1);
-	}
-	
-	/*2. 初始化编码器*/
-	X264_init_encoder(Image_Width,Image_Height);
-  pthread_create(&thread,NULL,pthread_video_Data_Handler,NULL);
-	
-	//设置线程的分离属性
-	pthread_detach(thread);
+	if(useStream){
+    /*1. 初始化摄像头*/
+    if(UVCvideoInit()!=0)
+    {
+      printf("摄像头数据采集客户端:初始化摄像头失败!\n");
+      exit(1);
+    }
+    /*2. 初始化编码器*/
+    X264_init_encoder(Image_Width,Image_Height);
+    pthread_create(&thread,NULL,pthread_video_Data_Handler,NULL);
+    //设置线程的分离属性
+    pthread_detach(thread);
+  }
 
   Groupsock rtpGroupsock(*env, destinationAddress, rtpPort, ttl);
   rtpGroupsock.multicastSendOnly(); // we're a SSM source
