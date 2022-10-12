@@ -55,7 +55,7 @@ along with this library; if not, write to the Free Software Foundation, Inc.,
 #include <string.h>
 #include <stdint.h>
 
-bool useStream = true;
+bool useStream = false;
 bool needRecord = false;
 UsageEnvironment* env;
 char const* inputFileName = "test_buf.h264";
@@ -63,7 +63,7 @@ char const* inputFileName = "test_buf.h264";
 H264VideoStreamFramer* videoSource;
 RTPSink* videoSink;
 /*摄像头相关的全局变量声明区域*/
-#define UVC_VIDEO_DEVICE "/dev/video0"  /*UVC摄像头设备节点*/
+#define UVC_VIDEO_DEVICE "/dev/video2"  /*UVC摄像头设备节点*/
 int uvc_video_fd; /*存放摄像头设备节点的文件描述符*/
 unsigned char *video_memaddr_buffer[4]; /*存放的是摄像头映射出来的缓冲区首地址*/
 int Image_Width;  /*图像的宽度*/
@@ -228,6 +228,7 @@ void compress_begin(Encoder *en, int width, int height)
 	x264_param_apply_preset(en->param,"medium");
 	en->param->i_width = width; //设置图像宽度
 	en->param->i_height = height; //设置图像高度
+	en->param->b_repeat_headers = 1;
 	if((en->handle = x264_encoder_open(en->param)) == 0)
 	{
 		return;
