@@ -63,7 +63,7 @@ char const* inputFileName = "test_buf.h264";
 H264VideoStreamFramer* videoSource;
 RTPSink* videoSink;
 /*摄像头相关的全局变量声明区域*/
-#define UVC_VIDEO_DEVICE "/dev/video2"  /*UVC摄像头设备节点*/
+#define UVC_VIDEO_DEVICE "/dev/video0"  /*UVC摄像头设备节点*/
 int uvc_video_fd; /*存放摄像头设备节点的文件描述符*/
 unsigned char *video_memaddr_buffer[4]; /*存放的是摄像头映射出来的缓冲区首地址*/
 int Image_Width;  /*图像的宽度*/
@@ -376,8 +376,8 @@ int UVCvideoInit(void)
 	struct v4l2_format format;
 	memset(&format,0,sizeof(struct v4l2_format));
 	format.type=V4L2_BUF_TYPE_VIDEO_CAPTURE; /*表示视频捕获设备*/
-	format.fmt.pix.width=320;  /*预设的宽度*/
-	format.fmt.pix.height=240; /*预设的高度*/
+	format.fmt.pix.width=1920;  /*预设的宽度*/
+	format.fmt.pix.height=1080; /*预设的高度*/
 	format.fmt.pix.pixelformat=V4L2_PIX_FMT_YUYV; /*预设的格式*/
 	format.fmt.pix.field=V4L2_FIELD_ANY; /*系统自动设置: 帧属性*/
 	if(ioctl(uvc_video_fd,VIDIOC_S_FMT,&format)) /*设置摄像头的属性*/
@@ -577,7 +577,7 @@ int main(int argc, char** argv) {
   rtcpGroupsock.multicastSendOnly(); // we're a SSM source
 
   // Create a 'H264 Video RTP' sink from the RTP 'groupsock':
-  OutPacketBuffer::maxSize = 100000;
+  OutPacketBuffer::maxSize = 800000;
   videoSink = H264VideoRTPSink::createNew(*env, &rtpGroupsock, 96);
 
   // Create (and start) a 'RTCP instance' for this RTP sink:
