@@ -55,7 +55,7 @@ along with this library; if not, write to the Free Software Foundation, Inc.,
 #include <string.h>
 #include <stdint.h>
 
-bool useStream = false;
+bool useStream = true;
 bool needRecord = false;
 UsageEnvironment* env;
 char const* inputFileName = "test_buf.h264";
@@ -68,6 +68,7 @@ int uvc_video_fd; /*存放摄像头设备节点的文件描述符*/
 unsigned char *video_memaddr_buffer[4]; /*存放的是摄像头映射出来的缓冲区首地址*/
 int Image_Width;  /*图像的宽度*/
 int Image_Height; /*图像的高度*/
+
 /*X264编码器相关的全局变量声明区域*/
 unsigned char *h264_buf=NULL;
 FILE * h264_fp_buf;
@@ -347,7 +348,7 @@ void encode_frame(uint8_t *yuv_frame)
 	h264_length = compress_frame(&en, -1, yuv_frame, h264_buf);
 	if(h264_length > 0)
 	{
-		printf("h264_length=%d\n",h264_length);
+		// printf("h264_length=%d\n",h264_length);
 		//写入视频文件
 		fwrite(h264_buf, h264_length,1,h264_fp);
     if(needRecord){
@@ -577,12 +578,12 @@ int main(int argc, char** argv) {
   rtcpGroupsock.multicastSendOnly(); // we're a SSM source
 
   // Create a 'H264 Video RTP' sink from the RTP 'groupsock':
-  OutPacketBuffer::maxSize = 800000;
+  OutPacketBuffer::maxSize = 400000;
   videoSink = H264VideoRTPSink::createNew(*env, &rtpGroupsock, 96);
 
   // Create (and start) a 'RTCP instance' for this RTP sink:
   const unsigned estimatedSessionBandwidth = 500; // in kbps; for RTCP b/w share
-  const unsigned maxCNAMElen = 100;
+  const unsigned maxCNAMElen = 50;
   unsigned char CNAME[maxCNAMElen+1];
   gethostname((char*)CNAME, maxCNAMElen);
   CNAME[maxCNAMElen] = '\0'; // just in case
