@@ -156,9 +156,7 @@ x264_encoder::x264_encoder(Encoder *en, int width, int height)
 
 	encoded_frame=(uint8_t *)malloc(sizeof(uint8_t)*width*height*3);
 	if(encoded_frame==NULL)printf("X264缓冲区申请失败!\n");
-	if(file_test){
-		file = fopen("/home/demo/x264_test.h264","wa+");
-	}
+	file = fopen("/home/demo/x264_test.h264","wa+");
 }
  
 /*结束压缩*/
@@ -256,21 +254,25 @@ int x264_encoder::compress_frame(Encoder *en, int type, uint8_t *in, uint8_t *ou
 }
  
 //编码并写入一帧数据
-void x264_encoder::encode_frame(uint8_t *yuv_frame)
+int x264_encoder::encode_frame(uint8_t *yuv_frame)
 {
 	int h264_length = 0;
 	//压缩一帧数据
 	h264_length = compress_frame(&my_encoder, -1, yuv_frame, encoded_frame);
 	if(h264_length > 0)
 	{
-		printf("h264_length=%d\n",h264_length);
+		// printf("h264_length=%d\n",h264_length);
 		//写入视频文件
-		fwrite(encoded_frame, h264_length,1,file);
+		if(file_test){
+			fwrite(encoded_frame, h264_length,1,file);
+		}
 	}
+	return h264_length;
 }
 
 x264_encoder::~x264_encoder(){
-
+	fclose(file);
+	free(encoded_frame);
 }
  
  
