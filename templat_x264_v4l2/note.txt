@@ -1,0 +1,1 @@
+g++ -o test main.cpp  v4l2_camera.cpp x264_encoder.cpp  -lpthread -lx264 -lm -ldl

@@ -1,0 +1,1 @@
+g++ -o x264_encoder main.cpp -lx264  -lpthread -lm -ldl

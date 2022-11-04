@@ -17,8 +17,9 @@
 #include <sys/mman.h>
 #include <string.h>
 #include <stdint.h>
-#include "x264_encoder.cpp"
+#include "x264_encoder.h"
 // #include "inc/x264.h"
+
 
 // typedef struct
 // {
@@ -84,8 +85,8 @@ int UVCvideoInit(void)
 	struct v4l2_format format;
 	memset(&format,0,sizeof(struct v4l2_format));
 	format.type=V4L2_BUF_TYPE_VIDEO_CAPTURE; /*表示视频捕获设备*/
-	format.fmt.pix.width=320;  /*预设的宽度*/
-	format.fmt.pix.height=240; /*预设的高度*/
+	format.fmt.pix.width=640;  /*预设的宽度*/
+	format.fmt.pix.height=320; /*预设的高度*/
 	format.fmt.pix.pixelformat=V4L2_PIX_FMT_YUYV; /*预设的格式*/
 	format.fmt.pix.field=V4L2_FIELD_ANY; /*系统自动设置: 帧属性*/
 	if(ioctl(uvc_video_fd,VIDIOC_S_FMT,&format)) /*设置摄像头的属性*/
@@ -193,6 +194,7 @@ void *pthread_video_Data_Handler(void *dev)
 		buff_info.type=V4L2_BUF_TYPE_VIDEO_CAPTURE;   /*视频捕获设备*/
 		ioctl(uvc_video_fd,VIDIOC_DQBUF,&buff_info); /*从采集队列取出缓冲区*/
 		index=buff_info.index;
+		printf("llb . buff_info.bytesused = %d \t",buff_info.bytesused);
 		//printf("采集数据的缓冲区的编号:%d\n",index);
  
 		/*3. 处理数据: 进行H264编码*/
@@ -229,7 +231,7 @@ int main(int argc,char **argv)
 	
 	/*2. 初始化编码器*/
 	// X264_init_encoder(Image_Width,Image_Height);
-	encoder_ = new x264_encoder(&my_encoder,Image_Width,Image_Height);
+	encoder_ = new x264_encoder(Image_Width,Image_Height);
 
 	if(argc==2)
 	{
